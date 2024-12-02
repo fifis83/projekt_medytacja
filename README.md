@@ -1,3 +1,3 @@
 # projekt_medytacja
 
-A new Flutter project.
+Projekt dla najlepszego pana **Guta**
