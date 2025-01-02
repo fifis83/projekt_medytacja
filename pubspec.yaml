@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  hexagon: ^0.2.0
   io: ^1.0.5
   path_provider: ^2.1.5
   window_size:
