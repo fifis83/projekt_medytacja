@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:hexagon/hexagon.dart';
+import 'dart:async';
 
 void main() {
   runApp(const MainApp());
@@ -27,8 +28,31 @@ class MainApp extends StatelessWidget {
   }
 }
 
-
 class DataUtils {
+  //TODO change this to use shared_preferences
+  static String curSesh = "";
+
+  Future<File> get _seshFile async {
+    if(curSesh == "") {
+      curSesh=DateTime.now().toString();
+    }
+    return File('/home/filip/dev/$curSesh.txt');
+  }
+
+  Future<File> saveRound(int round, String time) async {
+    final file = await _seshFile;
+    return file.writeAsString('$round=$time');
+  }
+
+  Future<List<(int,String)>> getSeshData() async{
+    List<(int,String)> lines;
+    try {
+          
+    } catch (e) {
+      return(lines);
+    }
+  }
+
   Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();
     return directory.path;
@@ -37,7 +61,7 @@ class DataUtils {
   Future<File> get _localFile async {
     //final path = await _localPath;
     //return File('$path/data.txt');
-    //TODO fix the path 
+    //TODO fix the path
     return File('/home/filip/dev/data.txt');
   }
 
@@ -58,28 +82,38 @@ class DataUtils {
       final file = await _localFile;
       final contents = await file.readAsString();
       final values = contents.split(',');
-      return (int.parse(values[0]),int.parse(values[1]),bool.parse(values[2]),bool.parse(values[3]),bool.parse(values[4]),bool.parse(values[5])); 
+      return (
+        int.parse(values[0]),
+        int.parse(values[1]),
+        bool.parse(values[2]),
+        bool.parse(values[3]),
+        bool.parse(values[4]),
+        bool.parse(values[5]),
+      );
     } catch (e) {
-      return (30,1,false,false,false,false);
+      return (30, 1, false, false, false, false);
     }
   }
+
 }
 
 class Options extends StatefulWidget {
-  const Options({super.key,});
+  const Options({super.key});
 
   @override
   State<Options> createState() => _OptionsState();
 }
 
 class _OptionsState extends State<Options> {
-  DataUtils storage=DataUtils();
-  int  breathsBeforeRetention = 30;
+  DataUtils storage = DataUtils();
+  int breathsBeforeRetention = 30;
   bool breathingMusic = false;
   bool retentionMusic = false;
   bool voice = false;
   bool pingAndGong = false;
-  int  _speed = 1;
+  int _speed = 1;
+
+  final int _round = 1;
 
   @override
   void initState() {
@@ -96,9 +130,16 @@ class _OptionsState extends State<Options> {
     });
   }
 
-  Future<File> _saveData(){
-    setState((){});
-    return storage.writeData(breathsBeforeRetention, _speed, breathingMusic, retentionMusic, voice, pingAndGong);
+  Future<File> _saveUserPreferences() {
+    setState(() {});
+    return storage.writeData(
+      breathsBeforeRetention,
+      _speed,
+      breathingMusic,
+      retentionMusic,
+      voice,
+      pingAndGong,
+    );
   }
 
   Widget customRadioButton(String text, int speed) {
@@ -106,6 +147,7 @@ class _OptionsState extends State<Options> {
       onPressed: () {
         setState(() {
           _speed = speed;
+          _saveUserPreferences();
         });
       },
       style: FilledButton.styleFrom(
@@ -158,15 +200,9 @@ class _OptionsState extends State<Options> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Expanded(
-                  child: customRadioButton("Wolno",1),
-                ),
-                Expanded(
-                  child: customRadioButton("Średnio",2), 
-                ),
-                Expanded(
-                  child: customRadioButton("Szybko", 3),
-                ),
+                Expanded(child: customRadioButton("Wolno", 1)),
+                Expanded(child: customRadioButton("Średnio", 2)),
+                Expanded(child: customRadioButton("Szybko", 3)),
               ],
             ),
           ),
@@ -179,6 +215,7 @@ class _OptionsState extends State<Options> {
                 onChanged: (val) {
                   setState(() {
                     breathingMusic = val;
+                    _saveUserPreferences();
                   });
                 },
               ),
@@ -192,6 +229,7 @@ class _OptionsState extends State<Options> {
                 onChanged: (val) {
                   setState(() {
                     retentionMusic = val;
+                    _saveUserPreferences();
                   });
                 },
               ),
@@ -207,6 +245,7 @@ class _OptionsState extends State<Options> {
                 onChanged: (val) {
                   setState(() {
                     voice = val;
+                    _saveUserPreferences();
                   });
                 },
               ),
@@ -222,25 +261,29 @@ class _OptionsState extends State<Options> {
                 onChanged: (val) {
                   setState(() {
                     pingAndGong = val;
+                    _saveUserPreferences();
                   });
                 },
               ),
             ],
           ),
-          
-          // temp save button
+
+          // start sesh button
           Row(
             children: [
-            FloatingActionButton(onPressed: _saveData,child:Text("save")),
-            FloatingActionButton(onPressed: (){
-              _saveData();
-              Navigator.of(context).push(
-              MaterialPageRoute(builder: (context)=>const Breathing()),
-              );},
-              child:Text("start"))
+              FloatingActionButton(
+                onPressed: () {
+                  _saveUserPreferences();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const Breathing(round: 1),
+                    ),
+                  );
+                },
+                child: Text("start"),
+              ),
             ],
           ),
-
         ],
       ),
     );
@@ -248,61 +291,69 @@ class _OptionsState extends State<Options> {
 }
 
 class Breathing extends StatefulWidget {
-  const Breathing({super.key});
+  const Breathing({super.key, required this.round});
+
+  final int round;
 
   @override
   State<Breathing> createState() => _BreathingState();
 }
 
-class _BreathingState extends State<Breathing> 
-with SingleTickerProviderStateMixin {
-  
+class _BreathingState extends State<Breathing>
+    with SingleTickerProviderStateMixin {
   DataUtils storage = DataUtils();
 
-  int  breathsBeforeRetention = 30;
+  int breathsBeforeRetention = 30;
   bool breathingMusic = false;
   bool retentionMusic = false;
   bool voice = false;
   bool pingAndGong = false;
-  int  _speed = 1;
+  int _speed = 1;
+
+  int _curBreaths = 0;
 
   late AnimationController _animationController;
   var scaleAnimation;
 
-  @override void initState() {
-      super.initState();
-      
-      _animationController = AnimationController(
-        duration:Duration(milliseconds: 1300),
-        //reverseDuration: Duration(seconds: 2),
-        vsync: this, 
-      )..addListener((){
-        setState(() {});
-        });
-      
-      _animationController.forward();
-      _animationController.addStatusListener((status){
-        if(status == AnimationStatus.completed){
-          if(breathsBeforeRetention!=0){
-            setState(() {
-            breathsBeforeRetention--;
-            });
-            _animationController.reverse();
-          } else {
-            Navigator.of(context).push(
-            MaterialPageRoute(builder: (context)=>const Options())
-              //MaterialPageRoute(builder: (context)=>const Retention()),
-            );
-          }
-        } else if(status == AnimationStatus.dismissed){
-          _animationController.forward();
-        }
-      });
+  @override
+  void initState() {
+    super.initState();
 
-      scaleAnimation = new Tween<double>(begin:1,end:0.11
-      ).animate(new CurvedAnimation(parent: _animationController, curve:Curves.easeInOutQuart));
-      
-      storage.readData().then((v) {
+    _animationController = AnimationController(
+      duration: Duration(milliseconds: 1300),
+      vsync: this,
+    )..addListener(() {
+      setState(() {});
+    });
+
+    _animationController.forward();
+    _animationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        if (breathsBeforeRetention != _curBreaths) {
+          setState(() {
+            _curBreaths++;
+          });
+          _animationController.reverse();
+        } else {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => Retention(round: widget.round),
+            ),
+          );
+        }
+      } else if (status == AnimationStatus.dismissed) {
+        _animationController.forward();
+      }
+    });
+
+    scaleAnimation = Tween<double>(begin: 1, end: 0.11).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOutQuart,
+      ),
+    );
+
+    storage.readData().then((v) {
       setState(() {
         breathsBeforeRetention = v.$1;
         _speed = v.$2;
@@ -311,56 +362,247 @@ with SingleTickerProviderStateMixin {
         voice = v.$5;
         pingAndGong = v.$6;
       });
-
     });
   }
-  
 
   @override
   Widget build(BuildContext context) {
+    // TODO add double tap to go to retention
     return Scaffold(
-    appBar: ,
-    body:Column(
-    children: [
-      ScaleTransition(
-        scale: scaleAnimation,
-        alignment: Alignment.center,
-        child:
-        HexagonWidget.pointy(
-          width: 100, 
-          color:Theme.of(context).colorScheme.onPrimaryContainer,
-          child:ScaleTransition(
-            scale: scaleAnimation ,
-            alignment: Alignment.center,
-            child:HexagonWidget.pointy(
-              width: 95, 
-              color:Theme.of(context).colorScheme.primary,
-              child:ScaleTransition(
+      //TODO add appbar
+      body: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+        onDoubleTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Retention(round: widget.round),
+            ),
+          );
+        },
+        child: Column(
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Text("Take $breathsBeforeRetention deep breaths"),
+          ScaleTransition(
             scale: scaleAnimation,
             alignment: Alignment.center,
-            child:HexagonWidget.pointy(
-              width: 90, 
-              color:Theme.of(context).colorScheme.primaryFixedDim,
-              child:ScaleTransition(
-            scale: scaleAnimation,
-            alignment: Alignment.center,
-            child:
-            HexagonWidget.pointy(
-              width: 85, 
-              color:Theme.of(context).colorScheme.primaryContainer,
-              child:Text(breathsBeforeRetention.toString(),style: TextStyle(color: Theme.of(context).colorScheme.primary,decoration: TextDecoration.none),),
-        ),),
-        ),),
-      ),),
-      ),),
-    ]
-    )
-    ); 
+            child: HexagonWidget.pointy(
+              width: 100,
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
+              child: ScaleTransition(
+                scale: scaleAnimation,
+                alignment: Alignment.center,
+                child: HexagonWidget.pointy(
+                  width: 95,
+                  color: Theme.of(context).colorScheme.primary,
+                  child: ScaleTransition(
+                    scale: scaleAnimation,
+                    alignment: Alignment.center,
+                    child: HexagonWidget.pointy(
+                      width: 90,
+                      color: Theme.of(context).colorScheme.primaryFixedDim,
+                      child: ScaleTransition(
+                        scale: scaleAnimation,
+                        alignment: Alignment.center,
+                        child: HexagonWidget.pointy(
+                          width: 85,
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          child: Text(
+                            _curBreaths.toString(),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Text("Tap twice to go into retention"),
+        ],
+      ),
+    ));
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+}
+
+class Retention extends StatefulWidget {
+  const Retention({super.key, required this.round});
+
+  final int round;
+
+  @override
+  State<Retention> createState() => _RetentionState();
+}
+
+class _RetentionState extends State<Retention> {
+  final Stopwatch _stopwatch = Stopwatch()..start();
+  late Timer timer;
+
+  
+
+  @override
+  void initState() {
+    super.initState();
+
+    timer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
+      setState(() {});
+    });
+  }
+
+  @override
+    void dispose() {
+      timer.cancel();
+      super.dispose();
+    }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+        onDoubleTap: () {
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Recovery(round: widget.round),
+            ),
+          );
+        },
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Text(
+              'Let go and hold',
+              style: TextStyle(
+                fontSize: 32,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            Column(
+              children: [
+                HexagonWidget.pointy(
+                  width: 200,
+                  cornerRadius: 10,
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text("Round ${widget.round}"),
+                      Text(
+                        '${_stopwatch.elapsed.inMinutes.remainder(60).toString().padLeft(2, '0')}:${_stopwatch.elapsed.inSeconds.remainder(60).toString().padLeft(2, '0')}',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          decoration: TextDecoration.none,
+                          fontSize: 42,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text("Tap twice to go into recovery breath"),
+              ],
+            ),
+            //Container(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class Recovery extends StatefulWidget {
+  const Recovery({super.key, required this.round});
+
+  final int round;
+
+  @override
+  State<Recovery> createState() => _RecoveryState();
+}
+
+class _RecoveryState extends State<Recovery> {
+  final Stopwatch _stopwatch = Stopwatch()..start();
+  late Timer timer;
+
+  Duration _elapsedTime = Duration(seconds: 0);
+
+  @override
+  void initState() {
+    super.initState();
+
+    timer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
+      if (_stopwatch.elapsed.inSeconds >= 5) {
+        setState(() {
+           _elapsedTime = _stopwatch.elapsed - Duration(seconds: 5);
+          if(_stopwatch.elapsed.inSeconds >= 20){
+            _elapsedTime =Duration(seconds: 15); 
+          }
+          }
+        );
+      };
+      
+      if (_stopwatch.elapsed.inSeconds == 22) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Breathing(round: widget.round + 1),
+          ),
+          (Route<dynamic> route) => false,
+        );
+      }
+    });
+  }
+
+  @override
+    void dispose() {
+      timer.cancel();
+      super.dispose();
+    }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Text(
+            'Take a deep breath in and hold',
+            style: TextStyle(
+              fontSize: 32,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          Column(
+            children: [
+              HexagonWidget.pointy(
+                width: 200,
+                cornerRadius: 10,
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: Text(
+                  '${_elapsedTime.inMinutes.remainder(60).toString().padLeft(2, '0')}:${_elapsedTime.inSeconds.remainder(60).toString().padLeft(2, '0')}',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    decoration: TextDecoration.none,
+                    fontSize: 42,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          //Container(),
+        ],
+      ),
+    );
   }
 }
