@@ -1,8 +1,9 @@
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:hexagon/hexagon.dart';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MainApp());
@@ -29,72 +30,48 @@ class MainApp extends StatelessWidget {
 }
 
 class DataUtils {
-  //TODO change this to use shared_preferences
-  static String curSesh = "";
+  static List<String> curSesh = [];
 
-  Future<File> get _seshFile async {
-    if(curSesh == "") {
-      curSesh=DateTime.now().toString();
-    }
-    return File('/home/filip/dev/$curSesh.txt');
+  void saveCurSesh() async {
+    final SharedPreferencesAsync prefs = SharedPreferencesAsync();
+    prefs.setStringList(DateTime.now().toString(), curSesh);
   }
 
-  Future<File> saveRound(int round, String time) async {
-    final file = await _seshFile;
-    return file.writeAsString('$round=$time');
+  String getLastRound() {
+    return curSesh.last;
   }
 
-  Future<List<(int,String)>> getSeshData() async{
-    List<(int,String)> lines;
-    try {
-          
-    } catch (e) {
-      return(lines);
-    }
+  static void finishRound(String time) {
+    curSesh.add(time);
   }
 
-  Future<String> get _localPath async {
-    final directory = await getApplicationDocumentsDirectory();
-    return directory.path;
-  }
+  //Future<List<String>> getSesh(String)
+}
 
-  Future<File> get _localFile async {
-    //final path = await _localPath;
-    //return File('$path/data.txt');
-    //TODO fix the path
-    return File('/home/filip/dev/data.txt');
-  }
+Widget appBarContent(int round, BuildContext context) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    mainAxisSize: MainAxisSize.max,   
+    children: [
+      // for correct spacing
+      Text("Finish",style:TextStyle(color: Theme.of(context).scaffoldBackgroundColor)),
 
-  Future<File> writeData(
-    int bBR,
-    int speed,
-    bool bM,
-    bool rM,
-    bool v,
-    bool pAG,
-  ) async {
-    final file = await _localFile;
-    return file.writeAsString('$bBR,$speed,$bM,$rM,$v,$pAG,');
-  }
+      Text('Round $round'),
 
-  Future<(int, int, bool, bool, bool, bool)> readData() async {
-    try {
-      final file = await _localFile;
-      final contents = await file.readAsString();
-      final values = contents.split(',');
-      return (
-        int.parse(values[0]),
-        int.parse(values[1]),
-        bool.parse(values[2]),
-        bool.parse(values[3]),
-        bool.parse(values[4]),
-        bool.parse(values[5]),
-      );
-    } catch (e) {
-      return (30, 1, false, false, false, false);
-    }
-  }
-
+      CupertinoButton(
+      
+        child: Text("Finish"),
+        onPressed: () {
+          //TODO go to results screen
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => Options()),
+            (Route<dynamic> route) => false,
+          );
+        },
+      ),
+    ],
+  );
 }
 
 class Options extends StatefulWidget {
@@ -105,41 +82,45 @@ class Options extends StatefulWidget {
 }
 
 class _OptionsState extends State<Options> {
-  DataUtils storage = DataUtils();
-  int breathsBeforeRetention = 30;
-  bool breathingMusic = false;
-  bool retentionMusic = false;
-  bool voice = false;
-  bool pingAndGong = false;
-  int _speed = 1;
+  final SharedPreferencesAsync prefs = SharedPreferencesAsync();
+  int? _breathsBeforeRetention = 30;
+  bool? _breathingMusic = false;
+  bool? _retentionMusic = false;
+  bool? _voice = false;
+  bool? _pingAndGong = false;
+  int? _speed = 1;
 
   final int _round = 1;
+
+  void getUserPreferences() async {
+    if (await prefs.getInt('bBR') != null) {
+      _breathsBeforeRetention = await prefs.getInt('bBR');
+      _speed = await prefs.getInt('s');
+      _breathingMusic = await prefs.getBool('bM');
+      _retentionMusic = await prefs.getBool('rM');
+      _voice = await prefs.getBool('v');
+      _pingAndGong = await prefs.getBool('pAG');
+    }
+    ;
+  }
 
   @override
   void initState() {
     super.initState();
-    storage.readData().then((v) {
-      setState(() {
-        breathsBeforeRetention = v.$1;
-        _speed = v.$2;
-        breathingMusic = v.$3;
-        retentionMusic = v.$4;
-        voice = v.$5;
-        pingAndGong = v.$6;
-      });
+    setState(() {
+      getUserPreferences();
     });
   }
 
-  Future<File> _saveUserPreferences() {
+  void _saveUserPreferences() async {
     setState(() {});
-    return storage.writeData(
-      breathsBeforeRetention,
-      _speed,
-      breathingMusic,
-      retentionMusic,
-      voice,
-      pingAndGong,
-    );
+
+    await prefs.setInt('bBR', _breathsBeforeRetention!);
+    await prefs.setInt('s', _speed!);
+    await prefs.setBool('bM', _breathingMusic!);
+    await prefs.setBool('rM', _retentionMusic!);
+    await prefs.setBool('v', _voice!);
+    await prefs.setBool('pAG', _pingAndGong!);
   }
 
   Widget customRadioButton(String text, int speed) {
@@ -211,10 +192,10 @@ class _OptionsState extends State<Options> {
             children: [
               Text("Muzyka podczas oddychania"),
               Switch(
-                value: breathingMusic,
+                value: _breathingMusic!,
                 onChanged: (val) {
                   setState(() {
-                    breathingMusic = val;
+                    _breathingMusic = val;
                     _saveUserPreferences();
                   });
                 },
@@ -225,10 +206,10 @@ class _OptionsState extends State<Options> {
             children: [
               Text("Muzyka podczas wstrzymywania oddechu"),
               Switch(
-                value: retentionMusic,
+                value: _retentionMusic!,
                 onChanged: (val) {
                   setState(() {
-                    retentionMusic = val;
+                    _retentionMusic = val;
                     _saveUserPreferences();
                   });
                 },
@@ -241,10 +222,10 @@ class _OptionsState extends State<Options> {
             children: [
               Text("Głos Wim Hofa "),
               Switch(
-                value: voice,
+                value: _voice!,
                 onChanged: (val) {
                   setState(() {
-                    voice = val;
+                    _voice = val;
                     _saveUserPreferences();
                   });
                 },
@@ -257,10 +238,10 @@ class _OptionsState extends State<Options> {
             children: [
               Text("Gong"),
               Switch(
-                value: pingAndGong,
+                value: _pingAndGong!,
                 onChanged: (val) {
                   setState(() {
-                    pingAndGong = val;
+                    _pingAndGong = val;
                     _saveUserPreferences();
                   });
                 },
@@ -301,19 +282,30 @@ class Breathing extends StatefulWidget {
 
 class _BreathingState extends State<Breathing>
     with SingleTickerProviderStateMixin {
-  DataUtils storage = DataUtils();
-
-  int breathsBeforeRetention = 30;
-  bool breathingMusic = false;
-  bool retentionMusic = false;
-  bool voice = false;
-  bool pingAndGong = false;
-  int _speed = 1;
+  final SharedPreferencesAsync prefs = SharedPreferencesAsync();
+  int? _breathsBeforeRetention = 30;
+  bool? _breathingMusic = false;
+  bool? _retentionMusic = false;
+  bool? _voice = false;
+  bool? _pingAndGong = false;
+  int? _speed = 1;
 
   int _curBreaths = 0;
 
   late AnimationController _animationController;
-  var scaleAnimation;
+  late Animation<double> scaleAnimation;
+  
+  void getUserPreferences() async {
+    if (await prefs.getInt('bBR') != null) {
+      _breathsBeforeRetention = await prefs.getInt('bBR');
+      _speed = await prefs.getInt('s');
+      _breathingMusic = await prefs.getBool('bM');
+      _retentionMusic = await prefs.getBool('rM');
+      _voice = await prefs.getBool('v');
+      _pingAndGong = await prefs.getBool('pAG');
+    }
+    
+  }
 
   @override
   void initState() {
@@ -329,7 +321,7 @@ class _BreathingState extends State<Breathing>
     _animationController.forward();
     _animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        if (breathsBeforeRetention != _curBreaths) {
+        if (_breathsBeforeRetention != _curBreaths) {
           setState(() {
             _curBreaths++;
           });
@@ -346,32 +338,24 @@ class _BreathingState extends State<Breathing>
       }
     });
 
-    scaleAnimation = Tween<double>(begin: 1, end: 0.11).animate(
+    scaleAnimation = Tween<double>(begin: 1, end: 0.01).animate(
       CurvedAnimation(
         parent: _animationController,
         curve: Curves.easeInOutQuart,
       ),
     );
 
-    storage.readData().then((v) {
-      setState(() {
-        breathsBeforeRetention = v.$1;
-        _speed = v.$2;
-        breathingMusic = v.$3;
-        retentionMusic = v.$4;
-        voice = v.$5;
-        pingAndGong = v.$6;
-      });
+    setState(() {
+      getUserPreferences();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // TODO add double tap to go to retention
     return Scaffold(
-      //TODO add appbar
+      appBar: AppBar(automaticallyImplyLeading: false ,title: appBarContent(widget.round, context)),
       body: GestureDetector(
-      behavior: HitTestBehavior.opaque,
+        behavior: HitTestBehavior.opaque,
         onDoubleTap: () {
           Navigator.push(
             context,
@@ -381,38 +365,43 @@ class _BreathingState extends State<Breathing>
           );
         },
         child: Column(
-        mainAxisSize: MainAxisSize.max,
-        children: [
-          Text("Take $breathsBeforeRetention deep breaths"),
-          ScaleTransition(
-            scale: scaleAnimation,
-            alignment: Alignment.center,
-            child: HexagonWidget.pointy(
-              width: 100,
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-              child: ScaleTransition(
-                scale: scaleAnimation,
-                alignment: Alignment.center,
-                child: HexagonWidget.pointy(
-                  width: 95,
-                  color: Theme.of(context).colorScheme.primary,
-                  child: ScaleTransition(
-                    scale: scaleAnimation,
-                    alignment: Alignment.center,
-                    child: HexagonWidget.pointy(
-                      width: 90,
-                      color: Theme.of(context).colorScheme.primaryFixedDim,
-                      child: ScaleTransition(
-                        scale: scaleAnimation,
-                        alignment: Alignment.center,
-                        child: HexagonWidget.pointy(
-                          width: 85,
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          child: Text(
-                            _curBreaths.toString(),
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              decoration: TextDecoration.none,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Text("Take $_breathsBeforeRetention deep breaths"),
+
+            //TODO think about this
+            Expanded(
+            child:ScaleTransition(
+              scale: scaleAnimation,
+              alignment: Alignment.center,
+              child: HexagonWidget.pointy(
+                width: 200,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                child: ScaleTransition(
+                  scale: scaleAnimation,
+                  alignment: Alignment.center,
+                  child: HexagonWidget.pointy(
+                    width: 190,
+                    color: Theme.of(context).colorScheme.primary,
+                    child: ScaleTransition(
+                      scale: scaleAnimation,
+                      alignment: Alignment.center,
+                      child: HexagonWidget.pointy(
+                        width: 180,
+                        color: Theme.of(context).colorScheme.primaryFixedDim,
+                        child: ScaleTransition(
+                          scale: scaleAnimation,
+                          alignment: Alignment.center,
+                          child: HexagonWidget.pointy(
+                            width: 170,
+                            color:
+                                Theme.of(context).colorScheme.primaryContainer,
+                            child: Text(
+                              _curBreaths.toString(),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                decoration: TextDecoration.none,
+                              ),
                             ),
                           ),
                         ),
@@ -421,12 +410,12 @@ class _BreathingState extends State<Breathing>
                   ),
                 ),
               ),
-            ),
-          ),
-          Text("Tap twice to go into retention"),
-        ],
+            ),),
+            Text("Tap twice to go into retention"),
+          ],
+        ),
       ),
-    ));
+    );
   }
 
   @override
@@ -449,8 +438,6 @@ class _RetentionState extends State<Retention> {
   final Stopwatch _stopwatch = Stopwatch()..start();
   late Timer timer;
 
-  
-
   @override
   void initState() {
     super.initState();
@@ -461,17 +448,20 @@ class _RetentionState extends State<Retention> {
   }
 
   @override
-    void dispose() {
-      timer.cancel();
-      super.dispose();
-    }
+  void dispose() {
+    timer.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(titleSpacing: 0, automaticallyImplyLeading: false, title: appBarContent(widget.round, context)),
       body: GestureDetector(
-      behavior: HitTestBehavior.opaque,
+        behavior: HitTestBehavior.opaque,
         onDoubleTap: () {
+          _stopwatch.stop();
+          DataUtils.finishRound(_stopwatch.toString());
 
           Navigator.push(
             context,
@@ -514,7 +504,7 @@ class _RetentionState extends State<Retention> {
                 Text("Tap twice to go into recovery breath"),
               ],
             ),
-            //Container(),
+            Container(),
           ],
         ),
       ),
@@ -544,14 +534,14 @@ class _RecoveryState extends State<Recovery> {
     timer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
       if (_stopwatch.elapsed.inSeconds >= 5) {
         setState(() {
-           _elapsedTime = _stopwatch.elapsed - Duration(seconds: 5);
-          if(_stopwatch.elapsed.inSeconds >= 20){
-            _elapsedTime =Duration(seconds: 15); 
+          _elapsedTime = _stopwatch.elapsed - Duration(seconds: 5);
+          if (_stopwatch.elapsed.inSeconds >= 20) {
+            _elapsedTime = Duration(seconds: 15);
           }
-          }
-        );
-      };
-      
+        });
+      }
+      ;
+
       if (_stopwatch.elapsed.inSeconds == 22) {
         Navigator.pushAndRemoveUntil(
           context,
@@ -565,14 +555,15 @@ class _RecoveryState extends State<Recovery> {
   }
 
   @override
-    void dispose() {
-      timer.cancel();
-      super.dispose();
-    }
+  void dispose() {
+    timer.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(automaticallyImplyLeading: false ,title: appBarContent(widget.round, context)),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
