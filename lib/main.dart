@@ -35,9 +35,10 @@ class DataUtils {
   void saveCurSesh() async {
     final SharedPreferencesAsync prefs = SharedPreferencesAsync();
     prefs.setStringList(DateTime.now().toString(), curSesh);
+    curSesh.clear();
   }
 
-  String getLastRound() {
+  static String getLastRound() {
     return curSesh.last;
   }
 
@@ -48,24 +49,31 @@ class DataUtils {
   //Future<List<String>> getSesh(String)
 }
 
-Widget appBarContent(int round, BuildContext context) {
+Widget appBarContent(int round, BuildContext context,[String? time]) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    mainAxisSize: MainAxisSize.max,   
+    mainAxisSize: MainAxisSize.max,
     children: [
       // for correct spacing
-      Text("Finish",style:TextStyle(color: Theme.of(context).scaffoldBackgroundColor)),
+      Text(
+        "Finish",
+        style: TextStyle(color: Theme.of(context).scaffoldBackgroundColor),
+      ),
 
       Text('Round $round'),
 
       CupertinoButton(
-      
         child: Text("Finish"),
         onPressed: () {
-          //TODO go to results screen
+          if(time!=null) DataUtils.finishRound(time);
+          
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => Options()),
+            MaterialPageRoute(
+              builder:
+                  (context) =>
+                      DataUtils.curSesh.isNotEmpty ? Results() : Options(),
+            ),
             (Route<dynamic> route) => false,
           );
         },
@@ -101,7 +109,6 @@ class _OptionsState extends State<Options> {
       _voice = await prefs.getBool('v');
       _pingAndGong = await prefs.getBool('pAG');
     }
-    ;
   }
 
   @override
@@ -294,7 +301,7 @@ class _BreathingState extends State<Breathing>
 
   late AnimationController _animationController;
   late Animation<double> scaleAnimation;
-  
+
   void getUserPreferences() async {
     if (await prefs.getInt('bBR') != null) {
       _breathsBeforeRetention = await prefs.getInt('bBR');
@@ -304,7 +311,6 @@ class _BreathingState extends State<Breathing>
       _voice = await prefs.getBool('v');
       _pingAndGong = await prefs.getBool('pAG');
     }
-    
   }
 
   @override
@@ -353,7 +359,10 @@ class _BreathingState extends State<Breathing>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(automaticallyImplyLeading: false ,title: appBarContent(widget.round, context)),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: appBarContent(widget.round, context),
+      ),
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onDoubleTap: () {
@@ -371,36 +380,39 @@ class _BreathingState extends State<Breathing>
 
             //TODO think about this
             Expanded(
-            child:ScaleTransition(
-              scale: scaleAnimation,
-              alignment: Alignment.center,
-              child: HexagonWidget.pointy(
-                width: 200,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-                child: ScaleTransition(
-                  scale: scaleAnimation,
-                  alignment: Alignment.center,
-                  child: HexagonWidget.pointy(
-                    width: 190,
-                    color: Theme.of(context).colorScheme.primary,
-                    child: ScaleTransition(
-                      scale: scaleAnimation,
-                      alignment: Alignment.center,
-                      child: HexagonWidget.pointy(
-                        width: 180,
-                        color: Theme.of(context).colorScheme.primaryFixedDim,
-                        child: ScaleTransition(
-                          scale: scaleAnimation,
-                          alignment: Alignment.center,
-                          child: HexagonWidget.pointy(
-                            width: 170,
-                            color:
-                                Theme.of(context).colorScheme.primaryContainer,
-                            child: Text(
-                              _curBreaths.toString(),
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                                decoration: TextDecoration.none,
+              child: ScaleTransition(
+                scale: scaleAnimation,
+                alignment: Alignment.center,
+                child: HexagonWidget.pointy(
+                  width: 200,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  child: ScaleTransition(
+                    scale: scaleAnimation,
+                    alignment: Alignment.center,
+                    child: HexagonWidget.pointy(
+                      width: 190,
+                      color: Theme.of(context).colorScheme.primary,
+                      child: ScaleTransition(
+                        scale: scaleAnimation,
+                        alignment: Alignment.center,
+                        child: HexagonWidget.pointy(
+                          width: 180,
+                          color: Theme.of(context).colorScheme.primaryFixedDim,
+                          child: ScaleTransition(
+                            scale: scaleAnimation,
+                            alignment: Alignment.center,
+                            child: HexagonWidget.pointy(
+                              width: 170,
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.primaryContainer,
+                              child: Text(
+                                _curBreaths.toString(),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  decoration: TextDecoration.none,
+                                ),
                               ),
                             ),
                           ),
@@ -410,7 +422,7 @@ class _BreathingState extends State<Breathing>
                   ),
                 ),
               ),
-            ),),
+            ),
             Text("Tap twice to go into retention"),
           ],
         ),
@@ -456,12 +468,20 @@ class _RetentionState extends State<Retention> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(titleSpacing: 0, automaticallyImplyLeading: false, title: appBarContent(widget.round, context)),
+      appBar: AppBar(
+        titleSpacing: 0,
+        automaticallyImplyLeading: false,
+        title: appBarContent(widget.round, context, '${_stopwatch.elapsed.inMinutes.remainder(60).toString().padLeft(2, '0')}:${_stopwatch.elapsed.inSeconds.remainder(60).toString().padLeft(2, '0')}'),
+      ),
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onDoubleTap: () {
+          //TODO add being able to go to recovery only after 5 sec
+          if (_stopwatch.elapsed < Duration(seconds: 5)) return;
           _stopwatch.stop();
-          DataUtils.finishRound(_stopwatch.toString());
+          DataUtils.finishRound(
+            '${_stopwatch.elapsed.inMinutes.remainder(60).toString().padLeft(2, '0')}:${_stopwatch.elapsed.inSeconds.remainder(60).toString().padLeft(2, '0')}',
+          );
 
           Navigator.push(
             context,
@@ -471,7 +491,7 @@ class _RetentionState extends State<Retention> {
           );
         },
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             Text(
               'Let go and hold',
@@ -480,6 +500,7 @@ class _RetentionState extends State<Retention> {
                 color: Theme.of(context).colorScheme.primary,
               ),
             ),
+            Container(),
             Column(
               children: [
                 HexagonWidget.pointy(
@@ -498,12 +519,18 @@ class _RetentionState extends State<Retention> {
                           fontSize: 42,
                         ),
                       ),
+                      Text(
+                        widget.round > 1
+                            ? 'Previous round\n${DataUtils.getLastRound()}'
+                            : '',
+                      ),
                     ],
                   ),
                 ),
                 Text("Tap twice to go into recovery breath"),
               ],
             ),
+            Container(),
             Container(),
           ],
         ),
@@ -563,7 +590,10 @@ class _RecoveryState extends State<Recovery> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(automaticallyImplyLeading: false ,title: appBarContent(widget.round, context)),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: appBarContent(widget.round, context),
+      ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -597,3 +627,52 @@ class _RecoveryState extends State<Recovery> {
     );
   }
 }
+
+class Results extends StatefulWidget {
+  const Results({super.key});
+
+  @override
+  State<Results> createState() => _ResultsState();
+}
+
+class _ResultsState extends State<Results> {
+  int _i = 1;
+
+  String calcAvgTime() {
+    int secSum = 0;
+    for (var i = 0; i < DataUtils.curSesh.length; i++) {
+      int minutes = int.parse(DataUtils.curSesh[i].substring(0, 2));
+      int seconds = int.parse(DataUtils.curSesh[i].substring(3));
+      secSum = seconds + (minutes * 60);
+    }
+    int avgSecs = (secSum / DataUtils.curSesh.length).floor();
+    return '${(avgSecs / 60).floor().toString().padLeft(2, '0')}:${(avgSecs % 60).toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text("Results"),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(children: [Icon(Icons.timer_outlined), Text("Average time:")]),
+            Text(calcAvgTime()),
+          ],
+        ),
+        Column(
+          children:
+              DataUtils.curSesh.map((time) {
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [Text("Round ${_i++}"), Text(time)],
+                );
+              }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+//TODO create a text style
