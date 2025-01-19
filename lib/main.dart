@@ -12,10 +12,10 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Wim Hof',
-      theme: ThemeData(
+      theme: ThemeData.from(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Color.fromARGB(255, 0, 50, 60),
-          secondary: Colors.amber,
+          seedColor: Color.fromARGB(255,10, 40, 50),
+          brightness: Brightness.light
         ),
         useMaterial3: true,
       ),
@@ -24,4 +24,3 @@ class MainApp extends StatelessWidget {
     );
   }
 }
-//TODO create a text style
