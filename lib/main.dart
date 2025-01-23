@@ -14,7 +14,7 @@ class MainApp extends StatelessWidget {
       title: 'Wim Hof',
       theme: ThemeData.from(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Color.fromARGB(255,10, 40, 50),
+          seedColor: Color.fromARGB(255,20, 55, 69),
           brightness: Brightness.light
         ),
         useMaterial3: true,
