@@ -24,7 +24,7 @@ class _RetentionState extends State<Retention> {
   late AudioPlayer voiceP = AudioPlayer();
 
   void _initAudio() async {
-    if(DataUtils.retentionMusic && !DataUtils.breathingMusic){
+    if (DataUtils.retentionMusic && !DataUtils.breathingMusic) {
       musicP = AudioPlayer();
       musicP.setSourceAsset('music.mp3');
       musicP.setReleaseMode(ReleaseMode.release);
@@ -51,7 +51,7 @@ class _RetentionState extends State<Retention> {
     });
   }
 
-  void _stopAudio(){
+  void _stopAudio() {
     pingP.stop();
     voiceP.stop();
     musicP.stop();
@@ -75,17 +75,17 @@ class _RetentionState extends State<Retention> {
     super.dispose();
   }
 
+  String _stopWatchToStr() {
+    return '${_stopwatch.elapsed.inMinutes.remainder(60).toString().padLeft(2, '0')}:${_stopwatch.elapsed.inSeconds.remainder(60).toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
         automaticallyImplyLeading: false,
-        title: appBarContent(
-          widget.round,
-          context,
-          '${_stopwatch.elapsed.inMinutes.remainder(60).toString().padLeft(2, '0')}:${_stopwatch.elapsed.inSeconds.remainder(60).toString().padLeft(2, '0')}',
-        ),
+        title: appBarContent(widget.round, context, _stopWatchToStr()),
       ),
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -93,9 +93,7 @@ class _RetentionState extends State<Retention> {
           if (_stopwatch.elapsed < Duration(seconds: 5)) return;
           _stopAudio();
           _stopwatch.stop();
-          DataUtils.finishRound(
-            '${_stopwatch.elapsed.inMinutes.remainder(60).toString().padLeft(2, '0')}:${_stopwatch.elapsed.inSeconds.remainder(60).toString().padLeft(2, '0')}',
-          );
+          DataUtils.finishRound(_stopWatchToStr());
 
           Navigator.push(
             context,
@@ -110,8 +108,9 @@ class _RetentionState extends State<Retention> {
             Text(
               'Let go and hold',
               style: TextStyle(
-                fontSize: 32,
-                color: Theme.of(context).colorScheme.primary,
+                fontSize: 18,
+                color: customNavy,
+                fontWeight: FontWeight.bold,
               ),
             ),
             Container(),
@@ -120,15 +119,14 @@ class _RetentionState extends State<Retention> {
                 HexagonWidget.pointy(
                   width: 200,
                   cornerRadius: 10,
-                  color: Theme.of(context).colorScheme.primaryContainer,
+                  color: customGrey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text("Round ${widget.round}"),
-                      Text(
-                        '${_stopwatch.elapsed.inMinutes.remainder(60).toString().padLeft(2, '0')}:${_stopwatch.elapsed.inSeconds.remainder(60).toString().padLeft(2, '0')}',
+                      Text(_stopWatchToStr(),
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
+                          color: customNavy,
                           decoration: TextDecoration.none,
                           fontSize: 42,
                         ),

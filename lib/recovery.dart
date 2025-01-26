@@ -51,16 +51,16 @@ class _RecoveryState extends State<Recovery> {
     super.initState();
     _initAudio();
     timer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
-      if (_stopwatch.elapsed.inSeconds >= 5) {
+      if (_stopwatch.elapsed.inSeconds >= 3) {
         setState(() {
-          _elapsedTime = _stopwatch.elapsed - Duration(seconds: 5);
-          if (_stopwatch.elapsed.inSeconds >= 20) {
+          _elapsedTime = _stopwatch.elapsed - Duration(seconds: 3);
+          if (_stopwatch.elapsed.inSeconds >= 18) {
             _elapsedTime = Duration(seconds: 15);
           }
         });
       }
 
-      if (_stopwatch.elapsed.inSeconds == 22) {
+      if (_stopwatch.elapsed.inSeconds == 20) {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
@@ -88,25 +88,26 @@ class _RecoveryState extends State<Recovery> {
         title: appBarContent(widget.round, context),
       ),
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           Text(
             'Take a deep breath in and hold',
             style: TextStyle(
-              fontSize: 32,
-              color: Theme.of(context).colorScheme.primary,
+              fontSize: 18,
+              color:customNavy,
             ),
           ),
+          Container(),
           Column(
             children: [
               HexagonWidget.pointy(
                 width: 200,
                 cornerRadius: 10,
-                color: Theme.of(context).colorScheme.primaryContainer,
+                color:customGrey,
                 child: Text(
                   '${_elapsedTime.inMinutes.remainder(60).toString().padLeft(2, '0')}:${_elapsedTime.inSeconds.remainder(60).toString().padLeft(2, '0')}',
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
+                    color:customNavy, 
                     decoration: TextDecoration.none,
                     fontSize: 42,
                   ),
@@ -114,7 +115,8 @@ class _RecoveryState extends State<Recovery> {
               ),
             ],
           ),
-          //Container(),
+          Container(),
+          Container(),
         ],
       ),
     );

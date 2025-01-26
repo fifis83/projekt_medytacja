@@ -5,6 +5,7 @@ TextStyle navyText = TextStyle(
   color: Color.fromARGB(255, 20, 55, 69),
   fontSize: 13,
   decoration: TextDecoration.none,
+  fontWeight: FontWeight.w600
   
 );
 

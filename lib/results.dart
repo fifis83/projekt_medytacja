@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:projekt_medytacja/data_utils.dart';
+import 'package:hexagon/hexagon.dart';
 import 'package:projekt_medytacja/text_style.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:projekt_medytacja/options.dart';
 
 class Results extends StatefulWidget {
   const Results({super.key});
@@ -11,6 +12,8 @@ class Results extends StatefulWidget {
 }
 
 class _ResultsState extends State<Results> {
+
+
   late AudioPlayer _voiceP = AudioPlayer();
   late AudioPlayer _gongP = AudioPlayer();
 
@@ -27,6 +30,7 @@ class _ResultsState extends State<Results> {
 
   @override
   void initState() {
+    //DataUtils.saveCurSesh();
     () async {
       if (DataUtils.voice) {
         _voiceP = AudioPlayer();
@@ -41,7 +45,7 @@ class _ResultsState extends State<Results> {
       }
     };
     WidgetsBinding.instance.addPostFrameCallback((time) async {
-      // start audio 10ms after first frame bc it doesn't work right away
+      // start audio 50ms after first frame bc it doesn't work right away
       await Future.delayed(Duration(milliseconds: 50));
       _voiceP.resume();
       _gongP.resume();
@@ -51,6 +55,7 @@ class _ResultsState extends State<Results> {
 
   @override
   void dispose() {
+    DataUtils.saveCurSesh();
     _voiceP.dispose();
     _gongP.dispose();
     super.dispose();
@@ -58,76 +63,108 @@ class _ResultsState extends State<Results> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Text(
-            "Well done!",
-            style: navyText 
-            //TextStyle(
-            //  //color: Color.fromARGB(255, 20, , 80),
-            //  //decoration: TextDecoration.none,
-            //  //fontSize: 17,
-            //),
-          ),
-          Text(
-            "Take a breath and relax, regain your normal breathing speed.\nHere are your results.",
-            style: TextStyle(
-              color: Colors.grey,
-              decoration: TextDecoration.none,
-              fontWeight: FontWeight.normal,
-              fontSize: 11,
-            ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(5),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.timer_outlined, size: 20),
-                      Text(" Average time:", style: navyText),
-                    ],
-                  ),
-                  Text(calcAvgTime(), style: navyText),
-                ],
+    return Scaffold(
+      appBar: AppBar(
+        titleSpacing: 50,
+        leading: IconButton(
+          onPressed: () {
+            DataUtils.saveCurSesh();
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) => Options(),
+              ),
+              (Route<dynamic> route) => false,
+            );
+          },
+          icon: Icon(Icons.arrow_back_ios_new,color:customNavy),
+        ),
+        title: Text(
+              "Guided breathing",
+              style: TextStyle(
+                color: customNavy,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ),
-          Column(
-            children:
-                DataUtils.curSesh.map((time) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      border: Border(bottom: BorderSide(color: Colors.black26)),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.all(5),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Round ${DataUtils.curSesh.indexOf(time) + 1}",
-                            style: navyText,
-                          ),
-                          Text(time, style: navyText),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-          ),
+        toolbarHeight: 40,
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            HexagonWidget.pointy(
+              elevation: 10,
+              width: 60,
+              color: customNavy,
+              child: ImageIcon(AssetImage('assets/lungs.png'),color:customGrey,size: 50.0,),
+            ),
+            Text(
+              "Well done!",
+              style: navyText,
+            ),
+            Text(
+              "Take a breath and relax, regain your normal breathing speed.\nHere are your results.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: customNavy,
+                decoration: TextDecoration.none,
+                fontWeight: FontWeight.normal,
+                fontSize: 11,
+              ),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                color: customGrey,
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(5),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
-          //ElevatedButton(onPressed: onPressed, child: Text("Save"))
-        ],
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.timer_outlined, size: 20),
+                        Text(" Average time:", style: navyText),
+                      ],
+                    ),
+                    Text(calcAvgTime(), style: navyText),
+                  ],
+                ),
+              ),
+            ),
+            Column(
+              children:
+                  DataUtils.curSesh.map((time) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: Colors.black26),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(5),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Round ${DataUtils.curSesh.indexOf(time) + 1}",
+                              style: navyText,
+                            ),
+                            Text(time, style: navyText),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+            ),
+            Spacer(),
+          ],
+        ),
       ),
     );
   }

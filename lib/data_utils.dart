@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 class DataUtils {
   static List<String> curSesh = [];
+
   static int speed = 1;
   static int breathsBeforeRetention = 30;
   static bool breathingMusic = false;
@@ -12,7 +13,8 @@ class DataUtils {
   static bool pingAndGong = false;
   static bool breathing = false;
   static bool recoveryMusic = false;
-  void saveCurSesh() async {
+
+  static void saveCurSesh() async {
     final SharedPreferencesAsync prefs = SharedPreferencesAsync();
     prefs.setStringList(DateTime.now().toString(), curSesh);
     curSesh.clear();

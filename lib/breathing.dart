@@ -32,6 +32,7 @@ class _BreathingState extends State<Breathing>
 
   late Color animColor;
 
+
   void _initAudio() async {
     if (DataUtils.breathingMusic) {
       musicP = AudioPlayer();
@@ -73,7 +74,7 @@ class _BreathingState extends State<Breathing>
     }
 
     WidgetsBinding.instance.addPostFrameCallback((time) async {
-      // start audio 10ms after first frame bc it doesn't work right away
+      // start audio 50ms after first frame bc it doesn't work right away
       await Future.delayed(Duration(milliseconds: 50));
       pingP.resume();
       breathInP.resume();
@@ -99,11 +100,11 @@ class _BreathingState extends State<Breathing>
     switch (DataUtils.speed) {
       case 1:
         breathDur = Duration(milliseconds: 3000);
-        animColor = Color.fromARGB(255,20, 55, 69);
+        animColor = Color.fromARGB(255, 20, 55, 69);
         break;
       case 2:
         breathDur = Duration(milliseconds: 2000);
-        animColor = Color.fromARGB(255, 185, 61, 19);
+        animColor = Color.fromARGB(255, 61, 185, 19);
         break;
       case 3:
         breathDur = Duration(milliseconds: 1300);
@@ -140,7 +141,6 @@ class _BreathingState extends State<Breathing>
         breathOutP.stop();
         breathInP.resume();
       }
-      
     });
 
     scaleAnimation = Tween<double>(begin: 0.01, end: 1).animate(
@@ -171,55 +171,58 @@ class _BreathingState extends State<Breathing>
             ),
           );
         },
-        child:Theme(
-    data:  ThemeData.from(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Color.fromARGB(255,10, 40, 50),
-          brightness: Brightness.light
-        )),
-    child:  Column(
+        child: Column(
           mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            Text("Take ${DataUtils.breathsBeforeRetention} deep breaths"),
+            Text("Take ${DataUtils.breathsBeforeRetention} deep breaths",style: TextStyle(fontWeight: FontWeight.bold,color: customNavy,fontSize: 18),),
 
-            //TODO think about this
-            Expanded(
-              child: ScaleTransition(
-                scale: scaleAnimation,
-                alignment: Alignment.center,
-                child: HexagonWidget.pointy(
-                  cornerRadius: 10.0,
-                  width: 200,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  child: ScaleTransition(
-                    scale: scaleAnimation,
-                    alignment: Alignment.center,
-                    child: HexagonWidget.pointy(
-                      cornerRadius: 10.0,
-                      width: 190,
-                      color: Theme.of(context).colorScheme.primary,
-                      child: ScaleTransition(
-                        scale: scaleAnimation,
-                        alignment: Alignment.center,
-                        child: HexagonWidget.pointy(
-                          cornerRadius: 10.0,
-                          width: 180,
-                          color: Theme.of(context).colorScheme.primaryFixedDim,
-                          child: ScaleTransition(
-                            scale: scaleAnimation,
-                            alignment: Alignment.center,
-                            child: HexagonWidget.pointy(
-                              cornerRadius: 10.0,
-                              width: 170,
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.primaryContainer,
-                              child: Text(
-                                _curBreaths.toString(),
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  decoration: TextDecoration.none,
+             Theme(
+              data: ThemeData.from(
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: animColor, 
+                  brightness: Brightness.light,
+                ),
+              ),
+                child:Builder(builder: (context) =>  ScaleTransition(
+                  scale: scaleAnimation,
+                  alignment: Alignment.center,
+                  child: HexagonWidget.pointy(
+                    cornerRadius: 10.0,
+                    width: 200,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    child: ScaleTransition(
+                      scale: scaleAnimation,
+                      alignment: Alignment.center,
+                      child: HexagonWidget.pointy(
+                        cornerRadius: 10.0,
+                        width: 190,
+                        color: Theme.of(context).colorScheme.primary,
+                        child: ScaleTransition(
+                          scale: scaleAnimation,
+                          alignment: Alignment.center,
+                          child: HexagonWidget.pointy(
+                            cornerRadius: 10.0,
+                            width: 180,
+                            color:
+                                Theme.of(context).colorScheme.primaryFixedDim,
+                            child: ScaleTransition(
+                              scale: scaleAnimation,
+                              alignment: Alignment.center,
+                              child: HexagonWidget.pointy(
+                                cornerRadius: 10.0,
+                                width: 170,
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.primaryContainer,
+                                child: Text(
+                                  _curBreaths.toString(),
+                                  style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    decoration: TextDecoration.none,
+                                  ),
                                 ),
                               ),
                             ),
@@ -228,14 +231,13 @@ class _BreathingState extends State<Breathing>
                       ),
                     ),
                   ),
-                ),
               ),
-            ),
+            ),),
             Text("Tap twice to go into retention"),
           ],
         ),
       ),
-    ));
+    );
   }
 
   @override
